@@ -1,0 +1,78 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { api } from "../api/client";
+import { useAuth } from "../context/AuthContext";
+
+export default function CreatePost() {
+  const navigate = useNavigate();
+  const { access } = useAuth();
+  const [form, setForm] = useState({
+    title: "",
+    caption: "",
+    visibility: "public",
+  });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    try {
+      const post = await api.createPost(form, access);
+      navigate(`/posts/${post.id}`);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <section style={{ maxWidth: 680 }}>
+      <div className="page-head">
+        <div>
+          <p className="eyebrow">Share</p>
+          <h1>Write</h1>
+        </div>
+      </div>
+      <form className="panel form" onSubmit={handleSubmit}>
+        {error && <div className="error">{error}</div>}
+        <div className="field">
+          <label htmlFor="title">Title</label>
+          <input
+            id="title"
+            placeholder="Give it a short name"
+            value={form.title}
+            onChange={(e) => setForm({ ...form, title: e.target.value })}
+          />
+        </div>
+        <div className="field">
+          <label htmlFor="caption">Note</label>
+          <textarea
+            id="caption"
+            rows={7}
+            required
+            placeholder="What’s on your mind?"
+            value={form.caption}
+            onChange={(e) => setForm({ ...form, caption: e.target.value })}
+          />
+        </div>
+        <div className="field">
+          <label htmlFor="visibility">Who can see this</label>
+          <select
+            id="visibility"
+            value={form.visibility}
+            onChange={(e) => setForm({ ...form, visibility: e.target.value })}
+          >
+            <option value="public">Everyone</option>
+            <option value="followers">Circle only</option>
+          </select>
+        </div>
+        <button className="btn" disabled={loading}>
+          {loading ? "Publishing…" : "Publish"}
+        </button>
+      </form>
+    </section>
+  );
+}
