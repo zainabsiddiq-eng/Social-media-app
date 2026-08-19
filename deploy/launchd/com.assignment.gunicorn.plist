@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+ "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+
+<plist version="1.0">
+<dict>
+
+    <key>Label</key>
+    <string>com.assignment.gunicorn</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/macbook/Desktop/djngopersonal_project/venv/bin/gunicorn</string>
+        <string>--bind</string>
+        <string>127.0.0.1:8001</string>
+        <string>assignment.wsgi:application</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/macbook/Desktop/djngopersonal_project/assignment</string>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>/Users/macbook/Desktop/djngopersonal_project/gunicorn.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/macbook/Desktop/djngopersonal_project/gunicorn-error.log</string>
+
+</dict>
+</plist>

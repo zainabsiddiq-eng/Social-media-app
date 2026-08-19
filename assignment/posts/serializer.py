@@ -65,6 +65,12 @@ class PostSerializer(serializers.ModelSerializer):
     hashtags = HashtagSerializer(many=True, read_only=True)
     user = serializers.IntegerField(source="user_id", read_only=True)
     author_name = serializers.CharField(source="user.name", read_only=True)
+    image = serializers.ImageField(
+        required=False,
+        allow_null=True,
+        use_url=True,
+        help_text="Optional post photo. Send as multipart/form-data field named image.",
+    )
 
     class Meta:
         model = Post
@@ -75,10 +81,38 @@ class PostSerializer(serializers.ModelSerializer):
             "title",
             "caption",
             "visibility",
+            "image",
             "images",
             "hashtags",
             "created_at",
         ]
+
+    def create(self, validated_data):
+        image = validated_data.pop("image", None)
+        post = Post.objects.create(**validated_data)
+        if image:
+            post.image = image
+            post.save(update_fields=["image"])
+        return post
+
+    def update(self, instance, validated_data):
+        image = validated_data.pop("image", None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        if image is not None:
+            instance.image = image
+        instance.save()
+        return instance
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if instance.image:
+            request = self.context.get("request")
+            url = instance.image.url
+            data["image"] = request.build_absolute_uri(url) if request else url
+        else:
+            data["image"] = None
+        return data
 
 
 class likeserializer(serializers.ModelSerializer):

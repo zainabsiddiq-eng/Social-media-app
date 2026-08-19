@@ -11,15 +11,30 @@ export default function CreatePost() {
     caption: "",
     visibility: "public",
   });
+  const [image, setImage] = useState(null);
+  const [preview, setPreview] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  function handleImageChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImage(file);
+    setPreview(URL.createObjectURL(file));
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
     setLoading(true);
     setError("");
     try {
-      const post = await api.createPost(form, access);
+      const body = new FormData();
+      body.append("title", form.title);
+      body.append("caption", form.caption);
+      body.append("visibility", form.visibility);
+      if (image) body.append("image", image);
+
+      const post = await api.createPost(body, access, true);
       navigate(`/posts/${post.id}`);
     } catch (err) {
       setError(err.message);
@@ -53,7 +68,7 @@ export default function CreatePost() {
             id="caption"
             rows={7}
             required
-            placeholder="What’s on your mind?"
+            placeholder="What's on your mind?"
             value={form.caption}
             onChange={(e) => setForm({ ...form, caption: e.target.value })}
           />
@@ -69,6 +84,21 @@ export default function CreatePost() {
             <option value="followers">Circle only</option>
           </select>
         </div>
+        <div className="field">
+          <label htmlFor="image">Photo (optional)</label>
+          <input
+            id="image"
+            type="file"
+            accept="image/*"
+            onChange={handleImageChange}
+          />
+          {image && <p className="muted">{image.name}</p>}
+        </div>
+        {preview && (
+          <div className="post-media">
+            <img src={preview} alt="Preview" />
+          </div>
+        )}
         <button className="btn" disabled={loading}>
           {loading ? "Publishing…" : "Publish"}
         </button>

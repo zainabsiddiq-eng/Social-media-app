@@ -1,0 +1,17 @@
+[Unit]
+Description=Kith Celery Worker
+After=network.target redis.service kith-gunicorn.service
+Wants=redis.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/djngopersonal_project/assignment
+EnvironmentFile=-/var/www/djngopersonal_project/assignment/.env
+ExecStart=/var/www/djngopersonal_project/venv/bin/celery -A assignment worker -l info
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

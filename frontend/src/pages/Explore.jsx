@@ -59,7 +59,7 @@ export default function Explore() {
             post={post}
             onLike={handleLike}
             liked={likedMap[post.id]}
-            canEdit={user?.id === post.user}
+            canEdit={Number(user?.id) === Number(post.user)}
           />
         ))}
       </div>

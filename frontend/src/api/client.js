@@ -1,10 +1,44 @@
 const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api";
-const MEDIA_BASE = import.meta.env.VITE_MEDIA_URL || "http://127.0.0.1:8000";
+const MEDIA_BASE = import.meta.env.VITE_MEDIA_URL;
 
 export function mediaUrl(path) {
   if (!path) return null;
-  if (path.startsWith("http")) return path;
-  return `${MEDIA_BASE}${path}`;
+  if (typeof path !== "string") {
+    if (path.image) return mediaUrl(path.image);
+    if (path.url) return mediaUrl(path.url);
+    return null;
+  }
+  if (path.startsWith("blob:") || path.startsWith("data:")) return path;
+  try {
+    if (path.startsWith("http://") || path.startsWith("https://")) {
+      const url = new URL(path);
+      if (url.pathname.startsWith("/media/")) {
+        return `${url.pathname}${url.search}`;
+      }
+      return path;
+    }
+  } catch {
+    /* keep going */
+  }
+  if (MEDIA_BASE) {
+    const prefix = MEDIA_BASE.replace(/\/$/, "");
+    return path.startsWith("/") ? `${prefix}${path}` : `${prefix}/${path}`;
+  }
+  if (path.startsWith("/media/") || path.startsWith("/")) return path;
+  if (path.startsWith("media/")) return `/${path}`;
+  return `/media/${path}`;
+}
+
+export function postImages(post) {
+  const raw = [];
+  if (post?.image) raw.push(post.image);
+  if (Array.isArray(post?.images)) {
+    for (const item of post.images) {
+      if (!item) continue;
+      raw.push(typeof item === "string" ? item : item.image);
+    }
+  }
+  return [...new Set(raw.map(mediaUrl).filter(Boolean))];
 }
 
 async function request(path, { method = "GET", body, token, formData } = {}) {
@@ -48,11 +82,11 @@ export const api = {
   editUser: (body) => request("/edit-user/", { method: "PATCH", body }),
   feed: (token) => request("/feed/", { token }),
   posts: (token) => request("/posts/list/", { token }),
-  createPost: (body, token) =>
-    request("/posts/create/", { method: "POST", body, token }),
+  createPost: (body, token, formData = false) =>
+    request("/posts/create/", { method: "POST", body, token, formData }),
   getPost: (id, token) => request(`/posts/${id}/`, { token }),
-  updatePost: (id, body, token) =>
-    request(`/posts/${id}/update/`, { method: "PUT", body, token }),
+  updatePost: (id, body, token, formData = false) =>
+    request(`/posts/${id}/update/`, { method: "PUT", body, token, formData }),
   deletePost: (id, token) =>
     request(`/posts/${id}/delete/`, { method: "DELETE", token }),
   likePost: (id, token) =>

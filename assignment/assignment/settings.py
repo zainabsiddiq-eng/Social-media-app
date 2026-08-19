@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 
 from pathlib import Path
 import os
+from decouple import config
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -40,7 +41,17 @@ SECRET_KEY = 'django-insecure-ob66a(!6!f7@9288ak5$tfr4fo+o0a=-_qz!s!oqia#uo$&h3p
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1","192.168.16.47"]
+ALLOWED_HOSTS = [
+    h.strip()
+    for h in config("ALLOWED_HOSTS", default="localhost,127.0.0.1").split(",")
+    if h.strip()
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    o.strip()
+    for o in config("CSRF_TRUSTED_ORIGINS", default="").split(",")
+    if o.strip()
+]
 
 
 # Application definition
@@ -68,6 +79,11 @@ REST_FRAMEWORK = {
         "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
+        "DEFAULT_PARSER_CLASSES": (
+            "rest_framework.parsers.JSONParser",
+            "rest_framework.parsers.FormParser",
+            "rest_framework.parsers.MultiPartParser",
+        ),
 }
 SPECTACULAR_SETTINGS = {
     "TITLE": "Authentication API",
@@ -96,8 +112,12 @@ MIDDLEWARE = [
 ]
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
+    o.strip()
+    for o in config(
+        "CORS_ALLOWED_ORIGINS",
+        default="http://localhost:5173,http://127.0.0.1:5173,http://localhost:8000,http://127.0.0.1:8000,http://localhost:8080,http://127.0.0.1:8080,http://192.168.16.47:8000,http://192.168.16.47:8080",
+    ).split(",")
+    if o.strip()
 ]
 
 ROOT_URLCONF = 'assignment.urls'
@@ -133,7 +153,6 @@ CELERY_TIMEZONE = "UTC"
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-from decouple import config
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
@@ -183,7 +202,8 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = "/static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"

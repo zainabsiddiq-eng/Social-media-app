@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { mediaUrl } from "../api/client";
+import { postImages } from "../api/client";
 
 function formatDate(value) {
   if (!value) return "";
@@ -44,6 +44,8 @@ export default function PostCard({
   likeBusy = false,
   canEdit = false,
 }) {
+  const images = postImages(post);
+
   return (
     <article className="post-card">
       <h3 className="post-title">
@@ -58,11 +60,11 @@ export default function PostCard({
         )}
       </div>
       <p className="post-body">{post.caption}</p>
-      {post.images?.length > 0 && (
-        <div className="stack" style={{ marginTop: "0.9rem" }}>
-          {post.images.map((img) => (
-            <div className="post-media" key={img.id}>
-              <img src={mediaUrl(img.image)} alt="" />
+      {images.length > 0 && (
+        <div className="post-media-list">
+          {images.map((src) => (
+            <div className="post-media" key={src}>
+              <img src={src} alt="" />
             </div>
           ))}
         </div>

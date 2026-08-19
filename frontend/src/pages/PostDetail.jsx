@@ -14,7 +14,7 @@ export default function PostDetail() {
   const [error, setError] = useState("");
   const [liked, setLiked] = useState(false);
 
-  const isOwner = Boolean(post && user?.id === post.user);
+  const isOwner = Boolean(post && Number(user?.id) === Number(post.user));
 
   async function load() {
     try {

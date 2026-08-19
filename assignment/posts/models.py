@@ -13,6 +13,7 @@ class Post(models.Model):
         ("public", "Public"),
         ("followers", "Followers Only"),
     ]
+    image = models.ImageField(upload_to="posts/", blank=True, null=True)
 
     user = models.ForeignKey(
         User,

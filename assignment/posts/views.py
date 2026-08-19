@@ -3,10 +3,12 @@ from app.models import User
 from django.db.models import Q
 from rest_framework.generics import UpdateAPIView
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from drf_spectacular.utils import extend_schema
 from .serializer import ProfileSerializer,PostSerializer, UserList, followers,likeserializer,commentserializer
 from .models import Follow, Post, Comment
 from rest_framework.generics import (
+
     ListAPIView,
     RetrieveAPIView,
     DestroyAPIView,
@@ -36,19 +38,33 @@ class ProfileView(UpdateAPIView):
         serializer = self.get_serializer(self.get_object())
         return Response(serializer.data)
 
+@extend_schema(
+    request=PostSerializer,
+    responses=PostSerializer,
+)
 class CreatePost(CreateAPIView):
     serializer_class = PostSerializer
     permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        extra = {"user": self.request.user}
+        image = self.request.FILES.get("image")
+        if image:
+            extra["image"] = image
+        serializer.save(**extra)
+
 
 class ListPosts(ListAPIView):
     serializer_class = PostSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Post.objects.all()
+        return (
+            Post.objects.select_related("user")
+            .prefetch_related("images", "hashtags")
+            .order_by("-created_at")
+        )
     
 class RetrievePost(RetrieveAPIView):
     queryset = Post.objects.all()
@@ -59,10 +75,22 @@ class UpdatePost(UpdateAPIView):
     queryset = Post.objects.all()
     serializer_class = PostSerializer
     permission_classes = [IsAuthenticated]
-    http_method_names = ["put"]
+    parser_classes = [MultiPartParser, FormParser]
+    http_method_names = ["put", "patch"]
 
     def get_queryset(self):
         return Post.objects.filter(user=self.request.user)
+
+    def get_serializer(self, *args, **kwargs):
+        kwargs["partial"] = True
+        return super().get_serializer(*args, **kwargs)
+
+    def perform_update(self, serializer):
+        image = self.request.FILES.get("image")
+        if image:
+            serializer.save(image=image)
+        else:
+            serializer.save()
 
 
 class DeletePost(DestroyAPIView):
@@ -88,11 +116,17 @@ class Feed(ListAPIView):
             following=self.request.user
         ).values_list("follower", flat=True)
 
-        posts = Post.objects.filter(
-            Q(user=self.request.user) |
-            Q(user__in=following, visibility="public") |
-            Q(user__in=followers, visibility="public")
-        ).distinct().order_by("-created_at")
+        posts = (
+            Post.objects.select_related("user")
+            .prefetch_related("images", "hashtags")
+            .filter(
+                Q(user=self.request.user)
+                | Q(user__in=following, visibility="public")
+                | Q(user__in=followers, visibility="public")
+            )
+            .distinct()
+            .order_by("-created_at")
+        )
 
         return posts
 
