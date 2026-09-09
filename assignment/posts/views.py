@@ -1,5 +1,6 @@
 from requests import post, request
 from app.models import User
+from app.models import PostPermission
 from django.db.models import Q
 from rest_framework.generics import UpdateAPIView
 from rest_framework.permissions import IsAuthenticated
@@ -7,6 +8,7 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from drf_spectacular.utils import extend_schema
 from .serializer import ProfileSerializer,PostSerializer, UserList, followers,likeserializer,commentserializer
 from .models import Follow, Post, Comment
+from permission import CanViewPostList, CanUpdateAnyPost, CanDeleteAnyPost
 from rest_framework.generics import (
 
     ListAPIView,
@@ -57,7 +59,7 @@ class CreatePost(CreateAPIView):
 
 class ListPosts(ListAPIView):
     serializer_class = PostSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [CanViewPostList]
 
     def get_queryset(self):
         return (
@@ -74,12 +76,15 @@ class RetrievePost(RetrieveAPIView):
 class UpdatePost(UpdateAPIView):
     queryset = Post.objects.all()
     serializer_class = PostSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [CanUpdateAnyPost]
     parser_classes = [MultiPartParser, FormParser]
     http_method_names = ["put", "patch"]
 
     def get_queryset(self):
-        return Post.objects.filter(user=self.request.user)
+        user = self.request.user
+        if PostPermission.user_has(user, PostPermission.UPDATE):
+            return Post.objects.all()
+        return Post.objects.filter(user=user)
 
     def get_serializer(self, *args, **kwargs):
         kwargs["partial"] = True
@@ -96,10 +101,13 @@ class UpdatePost(UpdateAPIView):
 class DeletePost(DestroyAPIView):
     queryset = Post.objects.all()
     serializer_class = PostSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [CanDeleteAnyPost]
 
     def get_queryset(self):
-        return Post.objects.filter(user=self.request.user)
+        user = self.request.user
+        if PostPermission.user_has(user, PostPermission.DELETE):
+            return Post.objects.all()
+        return Post.objects.filter(user=user)
 
 
 
